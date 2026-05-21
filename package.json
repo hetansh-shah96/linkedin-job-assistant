@@ -9,7 +9,7 @@
     "db:push": "node lib/db-init.js"
   },
   "dependencies": {
-    "next": "14.2.5",
+    "next": "^14.2.35",
     "react": "^18",
     "react-dom": "^18",
     "groq-sdk": "^0.3.3",
