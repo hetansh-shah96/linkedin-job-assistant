@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 type Tab = 'screener' | 'cover' | 'gap' | 'tracker'
 type Status = 'saved' | 'applied' | 'interview' | 'offer' | 'rejected'
@@ -43,6 +43,65 @@ function ScoreBadge({ text }: { text: string }) {
   )
 }
 
+// ── RESUME UPLOAD FIELD ───────────────────────────────────────────────────────
+function ResumeField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+}) {
+  const [uploading, setUploading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/parse-resume', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.text) onChange(data.text)
+      else alert(data.error ?? 'Failed to parse file')
+    } catch {
+      alert('Failed to upload file')
+    } finally {
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ''
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+        <button
+          type="button"
+          className="btn-ghost text-xs"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+        >
+          {uploading ? 'Parsing…' : '↑ Upload PDF / DOCX'}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.docx,.txt"
+          className="hidden"
+          onChange={handleFile}
+        />
+      </div>
+      <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} />
+    </div>
+  )
+}
+
 function ResultBox({ text, showScore = false }: { text: string; showScore?: boolean }) {
   return (
     <div className="mt-4 card">
@@ -79,10 +138,12 @@ function ScreenerTab() {
     <div>
       <p className="text-sm text-gray-500 mb-4">Paste her resume and a LinkedIn job description to get a fit score and honest verdict.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Her resume / skills</label>
-          <textarea value={resume} onChange={e => setResume(e.target.value)} placeholder="Paste resume text or key skills, experience..." />
-        </div>
+        <ResumeField
+          label="Her resume / skills"
+          value={resume}
+          onChange={setResume}
+          placeholder="Upload a PDF/DOCX or paste resume text here…"
+        />
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Job description</label>
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full LinkedIn job description..." />
@@ -138,10 +199,12 @@ function CoverLetterTab() {
     <div>
       <p className="text-sm text-gray-500 mb-4">Generate a tailored cover letter for each job in seconds.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Her name & background</label>
-          <textarea value={background} onChange={e => setBackground(e.target.value)} placeholder="Name, current role, years of experience, key skills, achievements..." />
-        </div>
+        <ResumeField
+          label="Her name & background"
+          value={background}
+          onChange={setBackground}
+          placeholder="Upload a PDF/DOCX or paste name, role, skills, achievements…"
+        />
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Job description</label>
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the job description..." />
@@ -208,10 +271,12 @@ function GapTab() {
     <div>
       <p className="text-sm text-gray-500 mb-4">Compare her resume against a job to find gaps and get actionable quick wins.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Her current resume</label>
-          <textarea value={resume} onChange={e => setResume(e.target.value)} placeholder="Paste full resume or a detailed summary..." />
-        </div>
+        <ResumeField
+          label="Her current resume"
+          value={resume}
+          onChange={setResume}
+          placeholder="Upload a PDF/DOCX or paste full resume here…"
+        />
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Target job description</label>
           <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the job description she wants to target..." />

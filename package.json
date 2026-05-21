@@ -9,19 +9,22 @@
     "db:push": "node lib/db-init.js"
   },
   "dependencies": {
-    "next": "^14.2.35",
-    "react": "^18",
-    "react-dom": "^18",
+    "@neondatabase/serverless": "^0.9.3",
     "groq-sdk": "^0.3.3",
-    "@neondatabase/serverless": "^0.9.3"
+    "mammoth": "^1.12.0",
+    "next": "^14.2.35",
+    "pdf-parse": "^2.4.5",
+    "react": "^18",
+    "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5",
-    "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.0.1",
-    "postcss": "^8"
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
