@@ -44,6 +44,44 @@ function ScoreBadge({ text }: { text: string }) {
 }
 
 // ── RESUME UPLOAD FIELD ───────────────────────────────────────────────────────
+async function extractText(file: File): Promise<string> {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+
+  if (ext === 'txt') {
+    return await file.text()
+  }
+
+  if (ext === 'pdf') {
+    const arrayBuffer = await file.arrayBuffer()
+    const pdfjsLib = await import('pdfjs-dist')
+    // Worker must match the installed pdfjs-dist version
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const pages: string[] = []
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      pages.push(
+        content.items
+          .map((item) => ('str' in item ? (item as { str: string }).str : ''))
+          .join(' '),
+      )
+    }
+    return pages.join('\n')
+  }
+
+  if (ext === 'docx') {
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/parse-resume', { method: 'POST', body: fd })
+    const data = await res.json()
+    if (data.text) return data.text
+    throw new Error(data.error ?? 'Failed to parse DOCX')
+  }
+
+  throw new Error('Unsupported file type. Use PDF, DOCX, or TXT.')
+}
+
 function ResumeField({
   label,
   value,
@@ -63,14 +101,11 @@ function ResumeField({
     if (!file) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/parse-resume', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.text) onChange(data.text)
-      else alert(data.error ?? 'Failed to parse file')
-    } catch {
-      alert('Failed to upload file')
+      const text = await extractText(file)
+      if (text.trim()) onChange(text.trim())
+      else alert('Could not extract text. Try pasting manually.')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to read file. Try pasting manually.')
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''
