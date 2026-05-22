@@ -70,12 +70,10 @@ async function extractText(file: File): Promise<string> {
   }
 
   if (ext === 'docx') {
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/parse-resume', { method: 'POST', body: fd })
-    const data = await res.json()
-    if (data.text) return data.text
-    throw new Error(data.error ?? 'Failed to parse DOCX')
+    const arrayBuffer = await file.arrayBuffer()
+    const mammoth = await import('mammoth')
+    const result = await mammoth.extractRawText({ arrayBuffer })
+    return result.value
   }
 
   throw new Error('Unsupported file type. Use PDF, DOCX, or TXT.')
