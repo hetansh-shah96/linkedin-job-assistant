@@ -54,8 +54,7 @@ async function extractText(file: File): Promise<string> {
   if (ext === 'pdf') {
     const arrayBuffer = await file.arrayBuffer()
     const pdfjsLib = await import('pdfjs-dist')
-    // Worker must match the installed pdfjs-dist version
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
     const pages: string[] = []
     for (let i = 1; i <= pdf.numPages; i++) {
