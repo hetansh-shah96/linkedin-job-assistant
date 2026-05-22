@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as pdfParseModule from 'pdf-parse'
+import mammoth from 'mammoth'
+
+// pdf-parse ships both CJS and ESM; the ESM build exposes the fn on .default
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
+  (pdfParseModule as any).default ?? pdfParseModule
+
+export const runtime = 'nodejs'
 
 const ACCEPTED = ['pdf', 'docx', 'txt']
 
@@ -18,22 +27,23 @@ export async function POST(req: NextRequest) {
     let text = ''
 
     if (ext === 'pdf') {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse/lib/pdf-parse.js')
       const data = await pdfParse(buffer)
       text = data.text
     } else if (ext === 'docx') {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mammoth = require('mammoth')
       const result = await mammoth.extractRawText({ buffer })
       text = result.value
     } else {
       text = buffer.toString('utf-8')
     }
 
+    if (!text.trim()) {
+      return NextResponse.json({ error: 'Could not extract text from file. Try a different PDF or paste the text manually.' }, { status: 422 })
+    }
+
     return NextResponse.json({ text: text.trim() })
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Failed to parse file' }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[parse-resume]', message)
+    return NextResponse.json({ error: `Parse error: ${message}` }, { status: 500 })
   }
 }
