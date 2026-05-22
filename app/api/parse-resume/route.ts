@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as pdfParseModule from 'pdf-parse'
 import mammoth from 'mammoth'
-
-// pdf-parse ships both CJS and ESM; the ESM build exposes the fn on .default
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse: (buf: Buffer) => Promise<{ text: string }> =
-  (pdfParseModule as any).default ?? pdfParseModule
 
 export const runtime = 'nodejs'
 
@@ -27,6 +21,9 @@ export async function POST(req: NextRequest) {
     let text = ''
 
     if (ext === 'pdf') {
+      // require() at call-time avoids ESM/CJS interop issues with this CJS-only module
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
       const data = await pdfParse(buffer)
       text = data.text
     } else if (ext === 'docx') {
@@ -37,7 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!text.trim()) {
-      return NextResponse.json({ error: 'Could not extract text from file. Try a different PDF or paste the text manually.' }, { status: 422 })
+      return NextResponse.json(
+        { error: 'Could not extract text from file. Try a different PDF or paste the text manually.' },
+        { status: 422 },
+      )
     }
 
     return NextResponse.json({ text: text.trim() })
